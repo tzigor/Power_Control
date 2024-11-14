@@ -1,0 +1,477 @@
+object App: TApp
+  Left = 2459
+  Height = 715
+  Top = -645
+  Width = 583
+  Caption = 'Power control'
+  ClientHeight = 715
+  ClientWidth = 583
+  Color = 15529203
+  OnCreate = FormCreate
+  LCLVersion = '3.2.0.0'
+  object COMselectCB: TComboBox
+    Left = 8
+    Height = 23
+    Top = 8
+    Width = 100
+    ItemHeight = 15
+    TabOrder = 0
+  end
+  object ConnectBtn: TButton
+    Left = 128
+    Height = 25
+    Top = 8
+    Width = 75
+    Caption = 'Connect'
+    TabOrder = 1
+    OnClick = ConnectBtnClick
+  end
+  object Panel1: TPanel
+    Left = 8
+    Height = 136
+    Top = 48
+    Width = 280
+    BevelOuter = bvNone
+    BorderStyle = bsSingle
+    ClientHeight = 132
+    ClientWidth = 276
+    Color = clBlack
+    ParentBackground = False
+    ParentColor = False
+    TabOrder = 2
+    object Voltage: TLabel
+      Left = 24
+      Height = 128
+      Top = 4
+      Width = 229
+      Caption = '00.00'
+      Font.CharSet = RUSSIAN_CHARSET
+      Font.Color = clLime
+      Font.Height = -96
+      Font.Pitch = fpVariable
+      Font.Quality = fqDraft
+      ParentColor = False
+      ParentFont = False
+    end
+    object Label2: TLabel
+      Left = 5
+      Height = 50
+      Top = -8
+      Width = 23
+      Caption = 'V'
+      Font.CharSet = RUSSIAN_CHARSET
+      Font.Color = clWhite
+      Font.Height = -37
+      Font.Pitch = fpVariable
+      Font.Quality = fqDraft
+      ParentFont = False
+    end
+  end
+  object Label1: TLabel
+    Left = 8
+    Height = 15
+    Top = 688
+    Width = 59
+    Caption = 'Port status:'
+    Font.CharSet = RUSSIAN_CHARSET
+    Font.Color = clNavy
+    Font.Pitch = fpVariable
+    Font.Quality = fqDraft
+    ParentFont = False
+  end
+  object ConnectionStatusLbl: TLabel
+    Left = 72
+    Height = 15
+    Top = 688
+    Width = 72
+    Caption = 'Disconnected'
+  end
+  object CloseBtn: TButton
+    Left = 480
+    Height = 31
+    Top = 672
+    Width = 91
+    Caption = 'Close'
+    TabOrder = 3
+    OnClick = CloseBtnClick
+  end
+  object Panel2: TPanel
+    Left = 296
+    Height = 136
+    Top = 48
+    Width = 280
+    BevelOuter = bvNone
+    BorderStyle = bsSingle
+    ClientHeight = 132
+    ClientWidth = 276
+    Color = clBlack
+    ParentBackground = False
+    ParentColor = False
+    TabOrder = 4
+    object Current: TLabel
+      Left = 24
+      Height = 128
+      Top = 4
+      Width = 229
+      Caption = '00.00'
+      Font.CharSet = RUSSIAN_CHARSET
+      Font.Color = clAqua
+      Font.Height = -96
+      Font.Pitch = fpVariable
+      Font.Quality = fqDraft
+      ParentColor = False
+      ParentFont = False
+    end
+    object Label3: TLabel
+      Left = 5
+      Height = 50
+      Top = -8
+      Width = 24
+      Caption = 'A'
+      Font.CharSet = RUSSIAN_CHARSET
+      Font.Color = clWhite
+      Font.Height = -37
+      Font.Pitch = fpVariable
+      Font.Quality = fqDraft
+      ParentFont = False
+    end
+  end
+  object Panel3: TPanel
+    Left = 8
+    Height = 96
+    Top = 192
+    Width = 280
+    BevelOuter = bvNone
+    BorderStyle = bsSingle
+    ClientHeight = 92
+    ClientWidth = 276
+    Color = 15658734
+    ParentBackground = False
+    ParentColor = False
+    TabOrder = 5
+    object SetVoltage: TFloatSpinEdit
+      Left = 120
+      Height = 53
+      Top = 8
+      Width = 152
+      Font.CharSet = RUSSIAN_CHARSET
+      Font.Color = clGreen
+      Font.Height = -32
+      Font.Pitch = fpVariable
+      Font.Quality = fqDraft
+      Increment = 0.1
+      MaxValue = 75
+      ParentFont = False
+      TabOrder = 0
+    end
+    object Label4: TLabel
+      Left = 5
+      Height = 30
+      Top = 8
+      Width = 103
+      Caption = 'Set voltage'
+      Font.CharSet = RUSSIAN_CHARSET
+      Font.Height = -21
+      Font.Pitch = fpVariable
+      Font.Quality = fqDraft
+      ParentFont = False
+    end
+    object SetVoltageBar: TTrackBar
+      Left = 4
+      Height = 25
+      Top = 64
+      Width = 268
+      Max = 75
+      OnChange = SetVoltageBarChange
+      Position = 0
+      TabOrder = 1
+    end
+  end
+  object Panel4: TPanel
+    Left = 296
+    Height = 96
+    Top = 192
+    Width = 280
+    BevelOuter = bvNone
+    BorderStyle = bsSingle
+    ClientHeight = 92
+    ClientWidth = 276
+    Color = 15658734
+    ParentBackground = False
+    ParentColor = False
+    TabOrder = 6
+    object SetCurrent: TFloatSpinEdit
+      Left = 120
+      Height = 53
+      Top = 8
+      Width = 152
+      Font.CharSet = RUSSIAN_CHARSET
+      Font.Color = clBlue
+      Font.Height = -32
+      Font.Pitch = fpVariable
+      Font.Quality = fqDraft
+      Increment = 0.01
+      MaxValue = 10
+      ParentFont = False
+      TabOrder = 0
+    end
+    object Label5: TLabel
+      Left = 5
+      Height = 30
+      Top = 8
+      Width = 101
+      Caption = 'Set current'
+      Font.CharSet = RUSSIAN_CHARSET
+      Font.Height = -21
+      Font.Pitch = fpVariable
+      Font.Quality = fqDraft
+      ParentFont = False
+    end
+    object SetCurrentBar: TTrackBar
+      Left = 4
+      Height = 25
+      Top = 64
+      Width = 268
+      Max = 100
+      OnChange = SetCurrentBarChange
+      Position = 0
+      TabOrder = 1
+    end
+  end
+  object Panel5: TPanel
+    Left = 8
+    Height = 96
+    Top = 296
+    Width = 280
+    BevelOuter = bvNone
+    BorderStyle = bsSingle
+    ClientHeight = 92
+    ClientWidth = 276
+    Color = 15658734
+    ParentBackground = False
+    ParentColor = False
+    TabOrder = 7
+    object SetOVP: TFloatSpinEdit
+      Left = 120
+      Height = 53
+      Top = 8
+      Width = 152
+      Font.CharSet = RUSSIAN_CHARSET
+      Font.Color = clRed
+      Font.Height = -32
+      Font.Pitch = fpVariable
+      Font.Quality = fqDraft
+      Increment = 0.1
+      MaxValue = 75
+      ParentFont = False
+      TabOrder = 0
+      Value = 75
+    end
+    object Label6: TLabel
+      Left = 5
+      Height = 30
+      Top = 8
+      Width = 75
+      Caption = 'Set OVP'
+      Font.CharSet = RUSSIAN_CHARSET
+      Font.Height = -21
+      Font.Pitch = fpVariable
+      Font.Quality = fqDraft
+      ParentFont = False
+    end
+    object SetOVPBar: TTrackBar
+      Left = 4
+      Height = 25
+      Top = 64
+      Width = 268
+      Max = 75
+      OnChange = SetOVPBarChange
+      Position = 75
+      TabOrder = 1
+    end
+  end
+  object Panel6: TPanel
+    Left = 296
+    Height = 96
+    Top = 296
+    Width = 280
+    BevelOuter = bvNone
+    BorderStyle = bsSingle
+    ClientHeight = 92
+    ClientWidth = 276
+    Color = 15658734
+    ParentBackground = False
+    ParentColor = False
+    TabOrder = 8
+    object SetOCP: TFloatSpinEdit
+      Left = 120
+      Height = 53
+      Top = 8
+      Width = 152
+      Font.CharSet = RUSSIAN_CHARSET
+      Font.Color = clRed
+      Font.Height = -32
+      Font.Pitch = fpVariable
+      Font.Quality = fqDraft
+      Increment = 0.01
+      MaxValue = 10
+      ParentFont = False
+      TabOrder = 0
+      Value = 10
+    end
+    object Label7: TLabel
+      Left = 5
+      Height = 30
+      Top = 8
+      Width = 76
+      Caption = 'Set OCP'
+      Font.CharSet = RUSSIAN_CHARSET
+      Font.Height = -21
+      Font.Pitch = fpVariable
+      Font.Quality = fqDraft
+      ParentFont = False
+    end
+    object SetOCPBar: TTrackBar
+      Left = 4
+      Height = 25
+      Top = 64
+      Width = 268
+      Max = 100
+      OnChange = SetOCPBarChange
+      Position = 100
+      TabOrder = 1
+    end
+  end
+  object OutputInd: TShape
+    Left = 270
+    Height = 14
+    Top = 12
+    Width = 30
+    Pen.Color = clSilver
+  end
+  object Label8: TLabel
+    Left = 264
+    Height = 15
+    Top = 26
+    Width = 44
+    Caption = 'OUTPUT'
+  end
+  object LockInd: TShape
+    Left = 332
+    Height = 14
+    Top = 12
+    Width = 30
+    Pen.Color = clSilver
+  end
+  object Label9: TLabel
+    Left = 333
+    Height = 15
+    Top = 26
+    Width = 30
+    Caption = 'LOCK'
+  end
+  object AlarmInd: TShape
+    Left = 390
+    Height = 14
+    Top = 12
+    Width = 30
+    Pen.Color = clSilver
+  end
+  object Label10: TLabel
+    Left = 386
+    Height = 15
+    Top = 26
+    Width = 40
+    Caption = 'ALARM'
+  end
+  object CVInd: TShape
+    Left = 450
+    Height = 14
+    Top = 12
+    Width = 30
+    Pen.Color = clSilver
+  end
+  object Label11: TLabel
+    Left = 457
+    Height = 15
+    Top = 26
+    Width = 15
+    Caption = 'CV'
+  end
+  object CCInd: TShape
+    Left = 510
+    Height = 14
+    Top = 12
+    Width = 30
+    Pen.Color = clSilver
+  end
+  object Label12: TLabel
+    Left = 517
+    Height = 15
+    Top = 26
+    Width = 16
+    Caption = 'CC'
+  end
+  object OutputSw: TToggleBox
+    Left = 8
+    Height = 32
+    Top = 408
+    Width = 107
+    Caption = 'OUTPUT'
+    TabOrder = 9
+    OnChange = OutputSwChange
+  end
+  object LockSw: TToggleBox
+    Left = 128
+    Height = 32
+    Top = 408
+    Width = 107
+    Caption = 'LOCK'
+    TabOrder = 10
+    OnChange = LockSwChange
+  end
+  object AlarmSw: TToggleBox
+    Left = 248
+    Height = 32
+    Top = 408
+    Width = 107
+    Caption = 'ALARM'
+    TabOrder = 11
+    OnChange = AlarmSwChange
+  end
+  object ProgramBtn: TButton
+    Left = 416
+    Height = 32
+    Top = 408
+    Width = 96
+    Caption = 'Program'
+    TabOrder = 12
+    OnClick = ProgramBtnClick
+  end
+  object Label13: TLabel
+    Left = 192
+    Height = 15
+    Top = 688
+    Width = 70
+    Caption = 'Power status:'
+    Font.CharSet = RUSSIAN_CHARSET
+    Font.Color = clNavy
+    Font.Pitch = fpVariable
+    Font.Quality = fqDraft
+    ParentFont = False
+  end
+  object PowerStatus: TLabel
+    Left = 272
+    Height = 15
+    Top = 688
+    Width = 6
+    Caption = '0'
+  end
+  object Timer1: TTimer
+    Enabled = False
+    Interval = 500
+    OnTimer = Timer1Timer
+    Left = 536
+    Top = 608
+  end
+end
