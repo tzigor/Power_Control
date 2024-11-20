@@ -14,6 +14,11 @@ type
     Status  : Byte;
   end;
 
+  TMinMax = record
+    Min: Double;
+    Max: Double;
+  end;
+
 implementation
 
 end.

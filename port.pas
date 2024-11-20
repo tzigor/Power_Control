@@ -53,7 +53,7 @@ begin
       StartListeningTime:= Now;
       while mon do
       begin
-         sleep(100);
+         sleep(50);
          waiting:= ser.WaitingData; { save number of simbols in the incoming port }
          SetLength(value, waiting);
          ser.RecvBuffer(@value[1], waiting); { read buffer }

@@ -5,7 +5,8 @@ unit Utils;
 interface
 
 uses
-  Classes, SysUtils, UserTypes, Dialogs, Port, StrUtils, Graphics;
+  Classes, SysUtils, UserTypes, Dialogs, Port, StrUtils, Graphics, TASeries,
+  TAChartUtils;
 
 procedure OutputControlSet();
 
@@ -21,8 +22,10 @@ function DataToStr(Order           : Byte;
 
 function ParseBackData(Data : String): TBackData;
 procedure SendReceiveData();
-procedure SendRequest();
+function SendRequest(): Boolean;
 procedure SetIndicators();
+procedure StandardPacket();
+function GetSticker(x, y: Double): String;
 
 implementation
 uses Main;
@@ -109,7 +112,7 @@ begin
   end;
 end;
 
-procedure SendRequest();
+function SendRequest(): Boolean;
 var StrToSend, receivedData : String;
 begin
   if ConnectionStatus = True then begin
@@ -126,7 +129,9 @@ begin
      if receivedData <> 'Time out' then begin
         BackData:= ParseBackData(receivedData);
         SetIndicators();
-     end;
+        Result:= True;
+     end
+     else Result:= False;
   end;
 end;
 
@@ -135,10 +140,28 @@ begin
   App.Voltage.Caption:= FloatToStrf(BackData.Voltage / 100, ffFixed, 10, 2);
   App.Current.Caption:= FloatToStrf(BackData.Current / 1000, ffFixed, 10, 2);
   App.PowerStatus.Caption:= Dec2Numb(BackData.Status, 1, 2);
+
   if (BackData.Status and %10000000) > 0 then App.CVInd.Brush.Color:= clRed
   else App.CVInd.Brush.Color:= clWhite;
+
   if (BackData.Status and %01000000) > 0 then App.CCInd.Brush.Color:= clRed
   else App.CCInd.Brush.Color:= clWhite;
+
+  if (BackData.Status and %00111000) > 0 then App.AlarmInd.Brush.Color:= clRed
+  else App.AlarmInd.Brush.Color:= clWhite;
+end;
+
+procedure StandardPacket();
+begin
+  OutputControlSet();
+  SendReceiveData();
+  SetIndicators();
+end;
+
+function GetSticker(x, y: Double): String;
+var AfterDot: Byte;
+begin
+  GetSticker:= FloatToStrF(y, ffFixed, 10, 2) + #13#10 + DateTimeToStr(x);
 end;
 
 end.

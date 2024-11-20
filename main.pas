@@ -6,22 +6,26 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, Spin,
-  ComCtrls, ExtCtrls, synaser, jwawinbase, jwawinnt, Utils, Chart,
-  UserTypes;
+  ComCtrls, ExtCtrls, IniPropStorage, synaser, jwawinbase, jwawinnt, Utils,
+  Chart, UserTypes, LCLTranslator, DateUtils, Port;
 
 type
 
   { TApp }
 
   TApp = class(TForm)
+    ConnectionStatusLbl: TLabel;
+    Label1: TLabel;
     Label13: TLabel;
+    Panel7: TPanel;
     PowerStatus: TLabel;
+    TurnOfOnOver: TCheckBox;
+    IniPropStorage1: TIniPropStorage;
     ProgramBtn: TButton;
     CVInd: TShape;
     CloseBtn: TButton;
     COMselectCB: TComboBox;
     ConnectBtn: TButton;
-    ConnectionStatusLbl: TLabel;
     CCInd: TShape;
     Label10: TLabel;
     Label11: TLabel;
@@ -39,7 +43,6 @@ type
     Panel6: TPanel;
     SetOCP: TFloatSpinEdit;
     SetVoltage: TFloatSpinEdit;
-    Label1: TLabel;
     Label2: TLabel;
     Label3: TLabel;
     Label4: TLabel;
@@ -66,9 +69,13 @@ type
     procedure OutputSwChange(Sender: TObject);
     procedure ProgramBtnClick(Sender: TObject);
     procedure SetCurrentBarChange(Sender: TObject);
+    procedure SetCurrentChange(Sender: TObject);
     procedure SetOCPBarChange(Sender: TObject);
+    procedure SetOCPChange(Sender: TObject);
     procedure SetOVPBarChange(Sender: TObject);
+    procedure SetOVPChange(Sender: TObject);
     procedure SetVoltageBarChange(Sender: TObject);
+    procedure SetVoltageChange(Sender: TObject);
     procedure Timer1Timer(Sender: TObject);
   private
 
@@ -100,9 +107,16 @@ implementation
 
 procedure TApp.FormCreate(Sender: TObject);
 var
-i       : Integer;
-Phandle : Thandle;
+  i         : Integer;
+  Phandle   : Thandle;
+  sUserPath : string;
 begin
+  DecimalSeparator:= '.';
+  SetDefaultLang('en');
+  GetLocaleFormatSettings($409, DefaultFormatSettings);
+  sUserPath:= SysUtils.GetEnvironmentVariable('USERPROFILE');
+  SetCurrentDir(sUserPath);
+  IniPropStorage1.IniFileName:= sUserPath + '\Power_control.ini';
   FreePortsAvailable:= False;
    for i:=1 to 30 do
    begin
@@ -134,6 +148,8 @@ end;
 
 procedure TApp.OutputSwChange(Sender: TObject);
 begin
+  StandardPacket();
+  Sleep(100);
   if OutputSw.Checked then begin
     OutputInd.Brush.Color:= clRed;
     Timer1.Enabled:= True;
@@ -141,18 +157,15 @@ begin
   else begin
     OutputInd.Brush.Color:= clWhite;
     Timer1.Enabled:= False;
+  end;
+  if Not OutputSw.Checked then begin
     App.CVInd.Brush.Color:= clWhite;
     App.CCInd.Brush.Color:= clWhite;
-  end;
-  OutputControlSet();
-  SendReceiveData();
-  SetIndicators();
+  end
 end;
 
 procedure TApp.AlarmSwChange(Sender: TObject);
 begin
-  if AlarmSw.Checked then AlarmInd.Brush.Color:= clRed
-  else AlarmInd.Brush.Color:= clWhite;
   OutputControlSet();
   SendReceiveData();
 end;
@@ -167,9 +180,21 @@ begin
   SetCurrent.Value:= SetCurrentBar.Position / 10;
 end;
 
+procedure TApp.SetCurrentChange(Sender: TObject);
+begin
+  SetCurrentBar.Position:= Round(SetCurrent.Value * 10);
+  StandardPacket();
+end;
+
 procedure TApp.SetOCPBarChange(Sender: TObject);
 begin
   SetOCP.Value:= SetOCPBar.Position / 10;
+end;
+
+procedure TApp.SetOCPChange(Sender: TObject);
+begin
+  SetOCPBar.Position:= Round(SetOCP.Value * 10);
+  StandardPacket();
 end;
 
 procedure TApp.SetOVPBarChange(Sender: TObject);
@@ -177,14 +202,27 @@ begin
   SetOVP.Value:= SetOVPBar.Position;
 end;
 
+procedure TApp.SetOVPChange(Sender: TObject);
+begin
+  SetOVPBar.Position:= Round(SetOVP.Value);
+  StandardPacket();
+end;
+
 procedure TApp.SetVoltageBarChange(Sender: TObject);
 begin
   SetVoltage.Value:= SetVoltageBar.Position;
 end;
 
+procedure TApp.SetVoltageChange(Sender: TObject);
+begin
+  SetVoltageBar.Position:= Round(SetVoltage.Value);
+  StandardPacket();
+end;
+
 procedure TApp.Timer1Timer(Sender: TObject);
 begin
   SendRequest();
+  if ((BackData.Status and %00111000) > 0) And TurnOfOnOver.Checked then OutputSw.Checked:= False;
   SetIndicators();
 end;
 
@@ -209,6 +247,10 @@ begin
     OutputSw.Enabled:= True;
     LockSw.Enabled:= True;
     AlarmSw.Enabled:= True;
+    OutputSw.Checked:= False;
+    StandardPacket();
+    App.CCInd.Brush.Color:= clWhite;
+    App.CVInd.Brush.Color:= clWhite;
   end;
 end;
 
