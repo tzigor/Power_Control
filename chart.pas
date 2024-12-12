@@ -7,7 +7,8 @@ interface
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, Spin,
   ExtCtrls, Menus, TAGraph, TASeries, TAIntervalSources, TATools, DateUtils,
-  TAChartUtils, TATransformations, TAChartLiveView, Types, Utils, Port;
+  TAChartUtils, TATransformations, TAChartLiveView, Types, Utils, Port,
+  Windows, UserTypes;
 
 type
 
@@ -15,13 +16,26 @@ type
 
   TProgramForm = class(TForm)
     AddPointBtn: TButton;
+    StrictModeSw: TCheckBox;
+    OpenDialog: TOpenDialog;
+    RestoreProgBtn: TButton;
+    SaveProgBtn: TButton;
+    SaveDialog1: TSaveDialog;
+    SaveResultBtn: TButton;
+    CloseProgFormBtn: TButton;
+    Errors: TLabel;
+    Label14: TLabel;
+    Shape1: TShape;
+    StopProgramBtn: TButton;
     ChartLiveView1: TChartLiveView;
     ChartToolset1DataPointClickTool2: TDataPointClickTool;
     Interval: TFloatSpinEdit;
     DeletePoint: TMenuItem;
     InsertBefore: TMenuItem;
     InserAfter: TMenuItem;
+    Label6: TLabel;
     PopupMenu1: TPopupMenu;
+    IntervalHr: TSpinEdit;
     StartProgramBtn: TButton;
     Chart2: TChart;
     ChartAxisTransformations1: TChartAxisTransformations;
@@ -72,14 +86,21 @@ type
       APoint: TPoint);
     procedure ChartToolset1DataPointHintTool1Hint(ATool: TDataPointHintTool;
       const APoint: TPoint; var AHint: String);
+    procedure CloseProgFormBtnClick(Sender: TObject);
     procedure FormActivate(Sender: TObject);
+    procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure FormResize(Sender: TObject);
     procedure DeletePointClick(Sender: TObject);
     procedure InsertBeforeClick(Sender: TObject);
     procedure ResetBtnClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
+    procedure RestoreProgBtnClick(Sender: TObject);
+    procedure SaveProgBtnClick(Sender: TObject);
+    procedure SaveResultBtnClick(Sender: TObject);
     procedure StartProgramBtnClick(Sender: TObject);
-    procedure Timer1Timer(Sender: TObject);
+    procedure StopProgramBtnClick(Sender: TObject);
+    procedure StrictModeSwChange(Sender: TObject);
+    Procedure WndPosChange(Var MSG: TWMWINDOWPOSCHANGING); Message WM_WINDOWPOSCHANGING;
   private
 
   public
@@ -87,7 +108,9 @@ type
   end;
 
 var
-  ProgramForm: TProgramForm;
+  ProgramForm : TProgramForm;
+
+  ProgramRun  : Boolean = False;
 
   { Variables are initialized if OnHint event occur  }
   isOnHint           : Boolean = False;
@@ -112,68 +135,199 @@ begin
   CurrentSerie.LineType:= ltStepXY;
 end;
 
-procedure TProgramForm.StartProgramBtnClick(Sender: TObject);
+procedure TProgramForm.RestoreProgBtnClick(Sender: TObject);
+var
+   CSVContent : TStringList;
+   i          : Word;
+   wStr       : String;
+   DateTime   : Double;
+begin
+  OpenDialog.Filter:= 'PRG files|*.PRG|all files|*.*|';
+  OpenDialog.DefaultExt:= '.PRG';
+  if OpenDialog.Execute then begin
+    VoltageSerie.Clear;
+    CurrentSerie.Clear;
+    CSVContent:= TStringList.Create;
+    try
+        CSVContent.LoadFromFile(OpenDialog.FileName);
+        for i:=1 to CSVContent.Count-1 do begin
+           wStr:= GetParamValue(1, CSVContent[i]);
+           DateTime:= StrToFloat(wStr);
+
+           VoltageSerie.AddXY(DateTime, StrToFloat(GetParamValue(2, CSVContent[i])));
+           CurrentSerie.AddXY(DateTime, StrToFloat(GetParamValue(3, CSVContent[i])));
+
+        end;
+
+    except
+      on E: EInOutError do
+        ShowMessage('Error: ' + E.Message);
+    end;
+  end;
+end;
+
+procedure TProgramForm.SaveProgBtnClick(Sender: TObject);
+var
+  FS     : TextFile;
+  i      : LongInt;
+  CSVRes : String;
+begin
+   if VoltageSerie.Count > 0 then begin
+      SaveDialog1.Filename:= 'Power_Program_Data(' + IntToStr(DateTimeToUnix(Now)) + ').prg';
+      if SaveDialog1.Execute then begin
+          AssignFile(FS, SaveDialog1.Filename);
+          try
+            Rewrite(FS);
+            Writeln(FS, 'TIME,Voltage,Current');
+            for i:=0 to VoltageSerie.Count - 1 do begin
+               CSVRes:= FloatToStrF(VoltageSerie.GetXValue(i), ffFixed, 12, 10) + ',';
+               CSVRes += FloatToStrF(VoltageSerie.GetYValue(i), ffFixed, 12, 3) + ',';
+               CSVRes += FloatToStrF(CurrentSerie.GetYValue(i), ffFixed, 12, 3);
+               Writeln(FS, CSVRes);
+            end;
+          except
+             on E: EInOutError do begin
+                Application.MessageBox('Program file cannot be openned.', 'Error', MB_ICONERROR + MB_OK);
+             end;
+          end;
+          CloseFile(FS);
+          ShowMessage('Program saved');
+      end;
+   end;
+end;
+
+procedure TProgramForm.SaveResultBtnClick(Sender: TObject);
+var
+  FS     : TextFile;
+  i      : LongInt;
+  CSVRes : String;
+begin
+   if MonVoltageSerie.Count > 0 then begin
+      SaveDialog1.Filename:= 'Power_Log_Data(' + IntToStr(DateTimeToUnix(Now)) + ').csv';
+      if SaveDialog1.Execute then begin
+          AssignFile(FS, SaveDialog1.Filename);
+          try
+            Rewrite(FS);
+            Writeln(FS, 'TIME,Voltage,Current');
+            for i:=0 to MonVoltageSerie.Count - 1 do begin
+               CSVRes:= FormatDateTime('hh:mm:ss dd-mmm-yy', MonVoltageSerie.GetXValue(i)) + ',';
+               CSVRes += FloatToStrF(MonVoltageSerie.GetYValue(i), ffFixed, 12, 3) + ',';
+               CSVRes += FloatToStrF(MonCurrentSerie.GetYValue(i), ffFixed, 12, 3);
+               Writeln(FS, CSVRes);
+            end;
+          except
+             on E: EInOutError do begin
+                Application.MessageBox('Log file cannot be openned.', 'Error', MB_ICONERROR + MB_OK);
+             end;
+          end;
+          CloseFile(FS);
+          ShowMessage('Result saved');
+      end;
+   end;
+end;
+
+procedure RunProgram();
 var i, j, n        : Integer;
     StrToSend      : String;
     TimeInterval   : Int64;
     StartCycle     : TDateTime;
     DiffMillis     : Int64;
     InitDiffMillis : Int64;
+    Delay          : Int64;
+    ErrorNumber    : Word = 0;
 begin
-  if VoltageSerie.Count > 0 then begin
+  if ProgramForm.VoltageSerie.Count > 0 then begin
+     ProgramRun:= True;
+     ProgramForm.StartProgramBtn.Enabled:= False;
      App.OutputSw.Checked:= True;
      App.Timer1.Enabled:= False;
      Sleep(300);
      StrToSend:= DataToStr(1,
-                           Round(VoltageSerie.GetYValue(0) * 100),
-                           Round(CurrentSerie.GetYValue(0) * 1000),
+                           Round(ProgramForm.VoltageSerie.GetYValue(0) * 100),
+                           Round(ProgramForm.CurrentSerie.GetYValue(0) * 1000),
                            Round(App.SetOVP.Value * 100),
                            Round(App.SetOCP.Value * 1000),
                            0,
                            0,
-                           OutputControl,
+                           %11000011,
                            0);
      GetResponse(StrToSend);
      Sleep(3000);
-     MonVoltageSerie.Clear;
-     MonCurrentSerie.Clear;
-     for i:= 0 to VoltageSerie.Count - 1 do begin
+     ProgramForm.MonVoltageSerie.Clear;
+     ProgramForm.MonCurrentSerie.Clear;
+     for i:= 0 to ProgramForm.VoltageSerie.Count - 1 do begin
+         if Not ProgramRun then Break;
+         Application.ProcessMessages;
          StartCycle:= Now();
-         if i < VoltageSerie.Count - 1 then TimeInterval:= MilliSecondsBetween(VoltageSerie.GetXValue(i + 1), VoltageSerie.GetXValue(i))
+         if i < ProgramForm.VoltageSerie.Count - 1 then
+             TimeInterval:= MilliSecondsBetween(ProgramForm.VoltageSerie.GetXValue(i + 1), ProgramForm.VoltageSerie.GetXValue(i))
          else TimeInterval:= 0;
          n:= Round(TimeInterval / 500);
          StrToSend:= DataToStr(1,
-                               Round(VoltageSerie.GetYValue(i) * 100),
-                               Round(CurrentSerie.GetYValue(i) * 1000),
+                               Round(ProgramForm.VoltageSerie.GetYValue(i) * 100),
+                               Round(ProgramForm.CurrentSerie.GetYValue(i) * 1000),
                                Round(App.SetOVP.Value * 100),
                                Round(App.SetOCP.Value * 1000),
                                0,
                                0,
-                               OutputControl,
+                               %11000011,
                                0);
+         //ProgramForm.TestLabel.Caption:= 'Send command';
+         //ProgramForm.TestLabel.Repaint;
          GetResponse(StrToSend);
          InitDiffMillis:= MilliSecondsBetween(Now(), StartCycle);
          for j:=1 to n do begin
+            Application.ProcessMessages;
             StartCycle:= Now();
-            if SendRequest() then begin
-               MonVoltageSerie.AddXY(Now(), BackData.Voltage / 100);
-               MonCurrentSerie.AddXY(Now(), BackData.Current / 1000);
-            end;
+            SendRequest();
+            //TidRun:= BeginThread(@SendRequestThr);
+            if  Not resError then begin
+               ProgramForm.MonVoltageSerie.AddXY(Now(), BackData.Voltage / 100);
+               ProgramForm.MonCurrentSerie.AddXY(Now(), BackData.Current / 1000);
+            end
+            else Inc(ErrorNumber);
             DiffMillis:= MilliSecondsBetween(Now(), StartCycle);
+            //ProgramForm.TestLabel.Caption:= IntToStr(500 - InitDiffMillis - DiffMillis);
+            //ProgramForm.TestLabel.Repaint;
+            Delay:= 500 - InitDiffMillis - DiffMillis;
+            if (Delay < 0) Or (Delay > 500) then begin
+              Delay:= 450;
+              Inc(ErrorNumber);
+            end;
             Sleep(500 - InitDiffMillis - DiffMillis);
+            ProgramForm.Errors.Caption:= IntToStr(ErrorNumber);
+            ProgramForm.Errors.Repaint;
          end;
 
        end;
      App.Timer1.Enabled:= True;
   end;
+  ProgramRun:= False;
+  ProgramForm.StartProgramBtn.Enabled:= True;
   ShowMessage('Cycle completed');
 end;
 
-procedure TProgramForm.Timer1Timer(Sender: TObject);
+procedure TProgramForm.StartProgramBtnClick(Sender: TObject);
 begin
-  SendRequest();
-  MonVoltageSerie.AddXY(Now(), BackData.Voltage / 100);
-  MonCurrentSerie.AddXY(Now(), BackData.Current / 1000);
+  RunProgram();
+end;
+
+procedure TProgramForm.StopProgramBtnClick(Sender: TObject);
+begin
+  ProgramRun:= False;
+  StartProgramBtn.Enabled:= True;
+end;
+
+procedure TProgramForm.StrictModeSwChange(Sender: TObject);
+begin
+  if StrictModeSw.Checked then begin
+     ProgramForm.BorderStyle:= bsDialog;
+     isMovable:= False;
+  end
+  else begin
+    ProgramForm.BorderStyle:= bsSizeable;
+    isMovable:= True;
+  end;
 end;
 
 procedure TProgramForm.ResetBtnClick(Sender: TObject);
@@ -188,6 +342,7 @@ var LastValue   : Double;
     NumSteps, i : Integer;
     StepInc     : Double;
 begin
+  if Interval.Value = 0 then Interval.Value:= 0.5;
   if VoltageSerie.Count = 0 then begin
      VoltageSerie.AddXY(0, InitialVoltage.Value);
      CurrentSerie.AddXY(0, SetCurrent.Value);
@@ -226,6 +381,7 @@ begin
      CurrentSerie.AddXY(0, SetCurrent.Value);
   end;
   LastTime:= VoltageSerie.GetXValue(VoltageSerie.Count - 1);
+
   LastTime:= IncMinute(LastTime, IntervalMin.Value);
   LastTime:= IncMilliSecond(LastTime, Round(Interval.Value * 1000));
   VoltageSerie.AddXY(LastTime, EndVoltage.Value);
@@ -302,10 +458,23 @@ begin
    AHint:= GetSticker(x, y);
 end;
 
+procedure TProgramForm.CloseProgFormBtnClick(Sender: TObject);
+begin
+  ProgramRun:= False;
+  StartProgramBtn.Enabled:= True;
+  Close;
+end;
+
 procedure TProgramForm.FormActivate(Sender: TObject);
 begin
   if ConnectionStatus = True then StartProgramBtn.Enabled:= True
   else StartProgramBtn.Enabled:= False;
+end;
+
+procedure TProgramForm.FormClose(Sender: TObject; var CloseAction: TCloseAction
+  );
+begin
+  isMovable:= True;
 end;
 
 procedure TProgramForm.FormResize(Sender: TObject);
@@ -331,12 +500,14 @@ begin
   end;
 end;
 
-//isOnHint           : Boolean = False;
-//OnHintSerie        : TLineSeries;
-//OnHintSerieIndex   : Integer;
-//OnHintPointIndex   : LongWord;
-//OnHintXPoint       : Double;
-//OnHintYPoint       : Double;
+Procedure TProgramForm.WndPosChange(Var MSG: TWMWINDOWPOSCHANGING);
+Begin
+  if ProgramForm.StrictModeSw.Checked then begin
+    MSG.WindowPos^.X:= Left;
+    MSG.WindowPos^.Y:= Top;
+    MSG.Result:= 0;
+  end;
+End;
 
 end.
 

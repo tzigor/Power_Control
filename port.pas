@@ -57,7 +57,7 @@ begin
          waiting:= ser.WaitingData; { save number of simbols in the incoming port }
          SetLength(value, waiting);
          ser.RecvBuffer(@value[1], waiting); { read buffer }
-         Application.ProcessMessages; { let app to listen other events }
+         //Application.ProcessMessages; { let app to listen other events }
          if value <> '' then begin
             Result:= value;
             mon:= False;

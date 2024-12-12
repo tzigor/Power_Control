@@ -7,13 +7,15 @@ interface
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, Spin,
   ComCtrls, ExtCtrls, IniPropStorage, synaser, jwawinbase, jwawinnt, Utils,
-  Chart, UserTypes, LCLTranslator, DateUtils, Port;
+  Chart, UserTypes, LCLTranslator, DateUtils, Port, Windows;
 
 type
 
   { TApp }
 
   TApp = class(TForm)
+    Button1: TButton;
+    TurnOffOnExitSw: TCheckBox;
     ConnectionStatusLbl: TLabel;
     Label1: TLabel;
     Label13: TLabel;
@@ -62,8 +64,11 @@ type
     Voltage: TLabel;
     Current: TLabel;
     procedure AlarmSwChange(Sender: TObject);
+    procedure Button1Click(Sender: TObject);
     procedure CloseBtnClick(Sender: TObject);
+    procedure COMselectCBChange(Sender: TObject);
     procedure ConnectBtnClick(Sender: TObject);
+    procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure FormCreate(Sender: TObject);
     procedure LockSwChange(Sender: TObject);
     procedure OutputSwChange(Sender: TObject);
@@ -77,6 +82,7 @@ type
     procedure SetVoltageBarChange(Sender: TObject);
     procedure SetVoltageChange(Sender: TObject);
     procedure Timer1Timer(Sender: TObject);
+    Procedure WndPosChange(Var MSG: TWMWINDOWPOSCHANGING); Message WM_WINDOWPOSCHANGING;
   private
 
   public
@@ -98,6 +104,7 @@ var
   mon                 : Boolean;      { port monitoring enable }
   FreePortsAvailable  : Boolean;
   ConnectionStatus    : Boolean = False;
+  isMovable           : Boolean = True;
 
 implementation
 
@@ -105,10 +112,64 @@ implementation
 
 { TApp }
 
+procedure FindPorts();
+var i       : Byte;
+    PortNames, wStr: String;
+begin
+   FreePortsAvailable:= False;
+   App.COMselectCB.Clear;
+   PortNames:= GetSerialPortNames;
+   if PortNames <> '' then begin
+     for i:= 1 to Length(PortNames) do begin
+        if PortNames[i] = ',' then begin
+           App.COMselectCB.Items.Add(wStr);
+           wStr:= '';
+        end
+        else wStr += PortNames[i];
+     end;
+     App.COMselectCB.Items.Add(wStr);
+     App.COMselectCB.ItemIndex:= 0;
+     FreePortsAvailable:= True;
+   end;
+end;
+
+procedure FindPorts2();
+var i       : Byte;
+    Phandle : Thandle;
+    PortNames, wStr: String;
+begin
+   FreePortsAvailable:= False;
+   App.COMselectCB.Clear;
+   PortNames:= GetSerialPortNames;
+   if PortNames <> '' then begin
+     for i:= 1 to Length(PortNames) do begin
+        if PortNames[i] = ',' then begin
+           App.COMselectCB.Items.Add(wStr);
+           wStr:= '';
+        end
+        else wStr += PortNames[i];
+     end;
+     App.COMselectCB.Items.Add(wStr);
+     App.COMselectCB.ItemIndex:= 0;
+     FreePortsAvailable:= True;
+   end;
+
+   //for i:=1 to 30 do
+   //begin
+   //   { try connect to porn i }
+   //   Phandle:= CreateFile(Pchar('COM'+intToStr(i)), Generic_Read or Generic_Write, 0, nil, open_existing,file_flag_overlapped, 0);
+   //   if Phandle <> invalid_handle_value then { if port enable }
+   //   begin
+   //      App.COMselectCB.Items.Add('COM'+ IntToStr(i));
+   //      FileClose(Phandle);
+   //      FreePortsAvailable:= True;
+   //      App.COMselectCB.ItemIndex:= 0;
+   //   end;
+   //end;
+end;
+
 procedure TApp.FormCreate(Sender: TObject);
 var
-  i         : Integer;
-  Phandle   : Thandle;
   sUserPath : string;
 begin
   DecimalSeparator:= '.';
@@ -117,19 +178,7 @@ begin
   sUserPath:= SysUtils.GetEnvironmentVariable('USERPROFILE');
   SetCurrentDir(sUserPath);
   IniPropStorage1.IniFileName:= sUserPath + '\Power_control.ini';
-  FreePortsAvailable:= False;
-   for i:=1 to 30 do
-   begin
-      { try connect to porn i }
-      Phandle:= CreateFile(Pchar('COM'+intToStr(i)), Generic_Read or Generic_Write, 0, nil, open_existing,file_flag_overlapped, 0);
-      if Phandle <> invalid_handle_value then { if port enable }
-      begin
-         App.COMselectCB.Items.Add('COM'+ IntToStr(i));
-         CloseHandle(Phandle);
-         FreePortsAvailable:= True;
-         App.COMselectCB.ItemIndex:= 0;
-      end;
-   end;
+  FindPorts();
    //SetOVP.Value:= 75;
    //SetOCP.Value:= 10;
    OutputSw.Enabled:= False;
@@ -137,6 +186,15 @@ begin
    AlarmSw.Enabled:= False;
    Timer1.Enabled:= False;
 end;
+
+Procedure TApp.WndPosChange(Var MSG: TWMWINDOWPOSCHANGING);
+Begin
+  if Not isMovable then begin
+    MSG.WindowPos^.X:= Left;
+    MSG.WindowPos^.Y:= Top;
+    MSG.Result:= 0;
+  end;
+End;
 
 procedure TApp.LockSwChange(Sender: TObject);
 begin
@@ -168,6 +226,11 @@ procedure TApp.AlarmSwChange(Sender: TObject);
 begin
   OutputControlSet();
   SendReceiveData();
+end;
+
+procedure TApp.Button1Click(Sender: TObject);
+begin
+  FindPorts();
 end;
 
 procedure TApp.ProgramBtnClick(Sender: TObject);
@@ -221,14 +284,22 @@ end;
 
 procedure TApp.Timer1Timer(Sender: TObject);
 begin
-  SendRequest();
-  if ((BackData.Status and %00111000) > 0) And TurnOfOnOver.Checked then OutputSw.Checked:= False;
-  SetIndicators();
+  //SendRequest();
+  TidRun:= BeginThread(@SendRequestThr);
+  if  Not resError then begin
+    if ((BackData.Status and %00111000) > 0) And TurnOfOnOver.Checked then OutputSw.Checked:= False;
+    SetIndicators();
+  end;
 end;
 
 procedure TApp.CloseBtnClick(Sender: TObject);
 begin
   Close;
+end;
+
+procedure TApp.COMselectCBChange(Sender: TObject);
+begin
+
 end;
 
 procedure TApp.ConnectBtnClick(Sender: TObject);
@@ -252,6 +323,12 @@ begin
     App.CCInd.Brush.Color:= clWhite;
     App.CVInd.Brush.Color:= clWhite;
   end;
+end;
+
+procedure TApp.FormClose(Sender: TObject; var CloseAction: TCloseAction);
+begin
+  if TurnOffOnExitSw.Checked then OutputSw.Checked:= False;
+  Sleep(100);
 end;
 
 end.

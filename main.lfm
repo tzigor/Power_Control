@@ -1,14 +1,20 @@
 object App: TApp
-  Left = 2344
+  Left = 2180
   Height = 598
-  Top = -580
+  Top = -572
   Width = 583
   Caption = 'Power control v1.0'
   ClientHeight = 598
   ClientWidth = 583
   Color = 15529203
+  Constraints.MaxHeight = 598
+  Constraints.MaxWidth = 583
+  Constraints.MinHeight = 598
+  Constraints.MinWidth = 583
+  OnClose = FormClose
   OnCreate = FormCreate
-  SessionProperties = 'SetCurrent.Value;SetCurrentBar.Position;SetOCP.Value;SetOCPBar.Position;SetOVP.Value;SetOVPBar.Position;SetVoltage.Value;SetVoltageBar.Position'
+  Position = poDefault
+  SessionProperties = 'SetCurrent.Value;SetCurrentBar.Position;SetOCP.Value;SetOCPBar.Position;SetOVP.Value;SetOVPBar.Position;SetVoltage.Value;SetVoltageBar.Position;TurnOffOnExitSw.Checked'
   LCLVersion = '3.2.0.0'
   object COMselectCB: TComboBox
     Left = 8
@@ -17,12 +23,13 @@ object App: TApp
     Width = 100
     ItemHeight = 15
     TabOrder = 0
+    OnChange = COMselectCBChange
   end
   object ConnectBtn: TButton
-    Left = 128
+    Left = 112
     Height = 25
     Top = 8
-    Width = 75
+    Width = 72
     Caption = 'Connect'
     TabOrder = 1
     OnClick = ConnectBtnClick
@@ -493,6 +500,25 @@ object App: TApp
       Width = 6
       Caption = '0'
     end
+  end
+  object TurnOffOnExitSw: TCheckBox
+    Left = 16
+    Height = 19
+    Top = 480
+    Width = 99
+    Caption = 'Turn off on exit'
+    Checked = True
+    State = cbChecked
+    TabOrder = 15
+  end
+  object Button1: TButton
+    Left = 192
+    Height = 25
+    Top = 8
+    Width = 67
+    Caption = 'Find port'
+    TabOrder = 16
+    OnClick = Button1Click
   end
   object Timer1: TTimer
     Enabled = False

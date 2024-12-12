@@ -19,6 +19,10 @@ type
     Max: Double;
   end;
 
+var
+  TidRun   : TThreadID;
+  resError : Boolean;
+
 implementation
 
 end.

@@ -22,10 +22,12 @@ function DataToStr(Order           : Byte;
 
 function ParseBackData(Data : String): TBackData;
 procedure SendReceiveData();
-function SendRequest(): Boolean;
+procedure SendRequest();
+function SendRequestThr(parameter: pointer): ptrint;
 procedure SetIndicators();
 procedure StandardPacket();
 function GetSticker(x, y: Double): String;
+function GetParamValue(ParamNum: Integer; TextLine: String): String;
 
 implementation
 uses Main;
@@ -85,9 +87,16 @@ end;
 function ParseBackData(Data : String): TBackData;
 var res: TBackData;
 begin
-  res.Voltage:= FillWord(Ord(Data[11]), Ord(Data[12]));
-  res.Current:= FillWord(Ord(Data[13]), Ord(Data[14]));
-  res.Status:= Ord(Data[16]);
+  if Data <> '' then begin
+    res.Voltage:= FillWord(Ord(Data[11]), Ord(Data[12]));
+    res.Current:= FillWord(Ord(Data[13]), Ord(Data[14]));
+    res.Status:= Ord(Data[16]);
+  end
+  else begin
+    res.Voltage:= 0;
+    res.Current:= 0;
+    res.Status:= 0;
+  end;
   Result:= res;
 end;
 
@@ -112,7 +121,7 @@ begin
   end;
 end;
 
-function SendRequest(): Boolean;
+procedure SendRequest();
 var StrToSend, receivedData : String;
 begin
   if ConnectionStatus = True then begin
@@ -129,10 +138,45 @@ begin
      if receivedData <> 'Time out' then begin
         BackData:= ParseBackData(receivedData);
         SetIndicators();
-        Result:= True;
+        resError:= False;
      end
-     else Result:= False;
+     else resError:= True;
   end;
+end;
+
+function SendRequestThr(parameter: pointer): ptrint;
+var StrToSend, Data : String;
+    res: TBackData;
+begin
+     StrToSend:= DataToStr(2,
+                           0,
+                           0,
+                           0,
+                           0,
+                           0,
+                           0,
+                           0,
+                           0);
+     Data:= GetResponse(StrToSend);
+     if Data <> 'Time out' then begin
+         if Data <> '' then begin
+            res.Voltage:= FillWord(Ord(Data[11]), Ord(Data[12]));
+            res.Current:= FillWord(Ord(Data[13]), Ord(Data[14]));
+            res.Status:= Ord(Data[16]);
+         end
+         else begin
+            res.Voltage:= 0;
+            res.Current:= 0;
+            res.Status:= 0;
+            resError:= True;
+            Exit;
+         end;
+         BackData:= res;
+
+         SetIndicators();
+         resError:= False;
+     end
+     else resError:= True;
 end;
 
 procedure SetIndicators();
@@ -162,6 +206,33 @@ function GetSticker(x, y: Double): String;
 var AfterDot: Byte;
 begin
   GetSticker:= FloatToStrF(y, ffFixed, 10, 2) + #13#10 + DateTimeToStr(x);
+end;
+
+function GetParamValue(ParamNum: Integer; TextLine: String): String;
+var LineLength, i, Counter, ParamStart: Integer;
+    SubStr: String;
+begin
+  if ParamNum > 0 then begin
+      LineLength:= Length(TextLine);
+      Counter:= 1;
+      SubStr:= '';
+      ParamStart:= 0;
+      for i:= 1 to LineLength do begin
+         if ParamNum = Counter then begin
+            ParamStart:= i;
+            break;
+         end;
+         if (TextLine[i] = ';') Or (TextLine[i] = ',') then Inc(Counter);
+      end;
+      if ParamStart > 0 then begin
+        repeat
+          SubStr:= SubStr + TextLine[ParamStart];
+          Inc(ParamStart);
+        until ( TextLine[ParamStart] = ';' ) Or ( TextLine[ParamStart] = ',' ) Or ( ParamStart > LineLength );
+        Result:= Trim(SubStr);
+      end;
+  end
+  else Result:= '';
 end;
 
 end.
